@@ -2,10 +2,10 @@ package main
 
 import (
 	"os"
+	"strings"
 	"testing"
 )
 
-// TestNormalization verifica la función normalization
 func TestNormalization(t *testing.T) {
 	cases := []struct {
 		input    string
@@ -25,7 +25,6 @@ func TestNormalization(t *testing.T) {
 	}
 }
 
-// TestCensor verifica la función censor
 func TestCensor(t *testing.T) {
 	cases := []struct {
 		length   int
@@ -34,6 +33,7 @@ func TestCensor(t *testing.T) {
 		{5, "*****"},
 		{3, "***"},
 		{0, ""},
+		{1, "*"},
 	}
 
 	for _, c := range cases {
@@ -44,21 +44,18 @@ func TestCensor(t *testing.T) {
 	}
 }
 
-// TestMakeSetWord verifica la función makeSetWord
 func TestMakeSetWord(t *testing.T) {
-	// Crea un archivo temporal
-	fileContent := "hello\nworld\ngolang\n"
+	fileContent := "hello\nworld\nGolang\n"
 	fileName := "test_words.txt"
 	err := os.WriteFile(fileName, []byte(fileContent), 0644)
 	if err != nil {
 		t.Fatalf("Error creating test file: %v", err)
 	}
-	defer os.Remove(fileName) // Elimina el archivo después de la prueba
+	defer os.Remove(fileName)
 
 	words := make(map[string]struct{})
 	makeSetWord(&words, fileName)
 
-	// Verifica si las palabras se agregaron correctamente al conjunto
 	expectedWords := map[string]struct{}{
 		"hello":  {},
 		"world":  {},
@@ -72,42 +69,47 @@ func TestMakeSetWord(t *testing.T) {
 	}
 }
 
-// TestIntegration prueba la funcionalidad completa del programa
 func TestIntegration(t *testing.T) {
-	// Crea un archivo temporal
 	fileContent := "hello\nworld\n"
 	fileName := "test_words_integration.txt"
 	err := os.WriteFile(fileName, []byte(fileContent), 0644)
 	if err != nil {
 		t.Fatalf("Error creating test file: %v", err)
 	}
-	defer os.Remove(fileName) // Elimina el archivo después de la prueba
+	defer os.Remove(fileName)
 
 	words := make(map[string]struct{})
 	makeSetWord(&words, fileName)
 
-	// Simula entradas y salidas
-	inputs := []string{"hello", "world", "golang", "exit"}
-	expectedOutputs := []string{"*****", "*****", "golang", "Bye!"}
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{"hello world", "***** *****"},
+		{"golang", "golang"},
+		{"hello golang", "***** golang"},
+		{"exit", "Bye!"},
+	}
 
-	for i, input := range inputs {
-		input = normalization(input)
+	for _, c := range cases {
+		input := c.input
 		if input == "exit" {
-			if expectedOutputs[i] != "Bye!" {
-				t.Errorf("Expected %q but got %q", expectedOutputs[i], "Bye!")
+			if c.expected != "Bye!" {
+				t.Errorf("Expected %q but got %q", c.expected, "Bye!")
 			}
 			break
 		}
 
-		if _, exists := words[input]; exists {
-			output := censor(len(input))
-			if output != expectedOutputs[i] {
-				t.Errorf("Expected %q but got %q", expectedOutputs[i], output)
+		wordsInput := strings.Split(input, " ")
+		for index, value := range wordsInput {
+			if _, ok := words[normalization(value)]; ok {
+				wordsInput[index] = censor(len(value))
 			}
-		} else {
-			if input != expectedOutputs[i] {
-				t.Errorf("Expected %q but got %q", expectedOutputs[i], input)
-			}
+		}
+
+		sentence := strings.Join(wordsInput, " ")
+		if sentence != c.expected {
+			t.Errorf("Expected %q but got %q", c.expected, sentence)
 		}
 	}
 }

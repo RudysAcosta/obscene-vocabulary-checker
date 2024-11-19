@@ -10,30 +10,39 @@ import (
 
 func main() {
 
-	var fileName, word string
+	var fileName string
 	words := make(map[string]struct{})
 
 	fmt.Scan(&fileName)
 
 	makeSetWord(&words, fileName)
 
-	for {
-		fmt.Scan(&word)
+	scanner := bufio.NewScanner(os.Stdin)
 
-		if word == "" {
+	for {
+		scanner.Scan()
+
+		input := strings.TrimSpace(scanner.Text())
+
+		if input == " " {
 			continue
 		}
 
-		if word == "exit" {
+		if input == "exit" {
 			fmt.Println("Bye!")
 			os.Exit(0)
 		}
 
-		if _, ok := words[normalization(word)]; ok {
-			fmt.Println(censor(len(word)))
-		} else {
-			fmt.Println(word)
+		wordsInput := strings.Split(input, " ")
+
+		for index, value := range wordsInput {
+			if _, ok := words[normalization(value)]; ok {
+				wordsInput[index] = censor(len(value))
+			}
 		}
+
+		sentence := strings.Join(wordsInput, " ")
+		fmt.Println(sentence)
 	}
 
 }
